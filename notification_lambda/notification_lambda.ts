@@ -1,7 +1,7 @@
 import { Handler, SQSEvent } from "aws-lambda";
 import { WebhookClient } from "discord.js";
-import { getSecret } from "./utils";
-import { VintedItem } from "./types";
+import { getSecret } from "../utils/utils";
+import { VintedItem } from "../utils/types";
 
 export const handler: Handler = async (event: SQSEvent) => {
   const { body } = event.Records[0];
