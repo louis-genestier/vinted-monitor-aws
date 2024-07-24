@@ -82,7 +82,6 @@ resource "aws_iam_policy" "read_notification_queue_policy" {
 }
 
 # Scraping lambda
-
 resource "aws_iam_role" "scraping_lambda_role" {
   name = "iam_for_lambda"
 
@@ -98,10 +97,6 @@ resource "aws_iam_role" "scraping_lambda_role" {
       }
     ]
   })
-
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  ]
 }
 
 resource "aws_lambda_function" "scraping_lambda" {
@@ -120,6 +115,11 @@ resource "aws_lambda_function" "scraping_lambda" {
   }
 }
 
+resource "aws_iam_role_policy_attachment" "scraping_lambda_basic_execution" {
+  role       = aws_iam_role.scraping_lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
 resource "aws_iam_role_policy_attachment" "write_notification_queue_policy_attachment" {
   role       = aws_iam_role.scraping_lambda_role.name
   policy_arn = aws_iam_policy.write_notification_queue_policy.arn
@@ -128,6 +128,21 @@ resource "aws_iam_role_policy_attachment" "write_notification_queue_policy_attac
 resource "aws_iam_role_policy_attachment" "read_scraping_queue_policy_attachment" {
   role       = aws_iam_role.scraping_lambda_role.name
   policy_arn = aws_iam_policy.read_scraping_queue_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "read_alert_table_policy_attachment" {
+  role       = aws_iam_role.scraping_lambda_role.name
+  policy_arn = aws_iam_policy.read_alerts_table_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "write_checked_items_table_policy_attachment" {
+  role       = aws_iam_role.scraping_lambda_role.name
+  policy_arn = aws_iam_policy.write_checked_items_table_policy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "read_checked_items_table_policy_attachment" {
+  role       = aws_iam_role.scraping_lambda_role.name
+  policy_arn = aws_iam_policy.read_checked_items_table_policy.arn
 }
 
 resource "aws_lambda_event_source_mapping" "scraping_lambda_event_source_mapping" {
@@ -152,10 +167,6 @@ resource "aws_iam_role" "notification_lambda_role" {
       }
     ]
   })
-
-  managed_policy_arns = [
-    "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-  ]
 }
 
 resource "aws_lambda_function" "notification_lambda" {
@@ -174,6 +185,10 @@ resource "aws_lambda_function" "notification_lambda" {
   }
 }
 
+resource "aws_iam_role_policy_attachment" "notification_lambda_basic_execution" {
+  role       = aws_iam_role.notification_lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
 resource "aws_iam_role_policy_attachment" "read_notification_queue_policy_attachment" {
   role       = aws_iam_role.notification_lambda_role.name
   policy_arn = aws_iam_policy.read_notification_queue_policy.arn
@@ -190,7 +205,6 @@ resource "aws_lambda_event_source_mapping" "notification_lambda_event_source_map
 }
 
 # Discord webhook URL secret
-
 resource "aws_secretsmanager_secret" "discord_webhook_url_secret" {
   name = "discord_webhook_url"
 }
@@ -208,6 +222,126 @@ resource "aws_iam_policy" "read_secret_policy" {
         ],
         Effect   = "Allow",
         Resource = aws_secretsmanager_secret.discord_webhook_url_secret.arn
+      }
+    ]
+  })
+}
+
+## Database
+
+# Alerts table
+resource "aws_dynamodb_table" "alerts" {
+  name         = "alerts"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "user_id"
+  range_key    = "alert_id"
+
+  attribute {
+    name = "alert_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "user_id"
+    type = "S"
+  }
+}
+
+resource "aws_iam_policy" "read_alerts_table_policy" {
+  name        = "read_alerts_table_policy"
+  description = "Policy to allow reading alerts table"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:BatchGetItem",
+          "dynamodb:Scan",
+          "dynamodb:Query",
+          "dynamodb:ConditionCheckItem"
+        ],
+        Effect   = "Allow",
+        Resource = aws_dynamodb_table.alerts.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "write_alerts_table_policy" {
+  name        = "write_alerts_table_policy"
+  description = "Policy to allow writing alerts table"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+        ],
+        Effect   = "Allow",
+        Resource = aws_dynamodb_table.alerts.arn
+      }
+    ]
+  })
+}
+
+# Checked items table
+resource "aws_dynamodb_table" "checked_items" {
+  name         = "checked_items"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "alert_id"
+  range_key    = "item_id"
+
+  attribute {
+    name = "alert_id"
+    type = "S"
+  }
+
+  attribute {
+    name = "item_id"
+    type = "N"
+  }
+}
+
+resource "aws_iam_policy" "read_checked_items_table_policy" {
+  name        = "read_checked_items_table_policy"
+  description = "Policy to allow reading checked items table"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:BatchGetItem",
+          "dynamodb:Scan",
+          "dynamodb:Query",
+          "dynamodb:ConditionCheckItem"
+        ],
+        Effect   = "Allow",
+        Resource = aws_dynamodb_table.checked_items.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_policy" "write_checked_items_table_policy" {
+  name        = "write_checked_items_table_policy"
+  description = "Policy to allow writing checked items table"
+
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+        ],
+        Effect   = "Allow",
+        Resource = aws_dynamodb_table.checked_items.arn
       }
     ]
   })
