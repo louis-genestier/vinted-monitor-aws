@@ -18,9 +18,11 @@
   "scripts": {
     "build:lambda:scraping": "rm -rf dist/scraping_lambda && esbuild scraping_lambda/scraping_lambda.ts --bundle --minify --platform=node --target=es2020 --outfile=dist/scraping_lambda/index.js && cd dist && zip -r -j -D scraping_lambda.zip scraping_lambda",
     "build:lambda:notification": "rm -rf dist/notification_lambda && esbuild notification_lambda/notification_lambda.ts --bundle --minify --platform=node --target=es2020 --outfile=dist/notification_lambda/index.js && cd dist && zip -r -j -D notification_lambda.zip notification_lambda",
-    "build:lambda:all": "bun run build:lambda:scraping && bun run build:lambda:notification",
+    "build:lambda:create": "rm -rf dist/create_alert_lambda && esbuild create_alert_lambda/create_alert_lambda.ts --bundle --minify --platform=node --target=es2020 --outfile=dist/create_alert_lambda/index.js && cd dist && zip -r -j -D create_alert_lambda.zip create_alert_lambda",
+    "build:lambda:all": "bun run build:lambda:scraping && bun run build:lambda:notification && bun run build:lambda:create",
     "publish:lambda:scraping": "aws lambda update-function-code --function-name scraping_lambda --zip-file fileb://dist/scraping_lambda.zip",
     "publish:lambda:notification": "aws lambda update-function-code --function-name notification_lambda --zip-file fileb://dist/notification_lambda.zip",
-    "publish:lambda:all": "bun run publish:lambda:scraping && bun run publish:lambda:notification"
+    "publish:lambda:create": "aws lambda update-function-code --function-name create_alert_lambda --zip-file fileb://dist/create_alert_lambda.zip",
+    "publish:lambda:all": "bun run publish:lambda:scraping && bun run publish:lambda:notification && bun run publish:lambda:create"
   }
 }

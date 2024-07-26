@@ -69,6 +69,38 @@ export const getAlert = async ({
   }
 };
 
+export const createNewAlert = async ({
+  userId,
+  keywords,
+  maxPrice,
+}: {
+  userId: string;
+  keywords: string;
+  maxPrice: number;
+}) => {
+  const params: DynamoDBClient.PutItemInput = {
+    TableName: "alerts",
+    Item: {
+      // @ts-expect-error
+      user_id: userId,
+      // @ts-expect-error
+      alert_id: `${userId}-${Date.now()}`,
+      // @ts-expect-error
+      keywords,
+      // @ts-expect-error
+      max_price: maxPrice,
+    },
+  };
+
+  try {
+    await dynamodb.put(params).promise();
+
+    return params.Item;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const getCheckedItems = async (itemId: number, alertId: string) => {
   const params: DynamoDBClient.GetItemInput = {
     TableName: "checked_items",
