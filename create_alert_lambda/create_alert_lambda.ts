@@ -1,5 +1,5 @@
 import { Handler } from "aws-lambda";
-import { createNewAlert } from "../utils/utils";
+import { createNewAlert } from "../utils";
 
 export const handler: Handler = async (event) => {
   try {

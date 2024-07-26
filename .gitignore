@@ -178,6 +178,3 @@ dist
 .terraform
 .terraform.lock.hcl
 *.tfstate*
-
-# random
-index.ts

@@ -6,7 +6,7 @@ import {
   getItems,
   getCheckedItems,
   setCheckedItem,
-} from "../utils/utils";
+} from "../utils";
 
 export const handler: Handler = async (event: SQSEvent) => {
   const { body } = event.Records[0];
