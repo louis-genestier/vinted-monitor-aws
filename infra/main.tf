@@ -83,7 +83,7 @@ resource "aws_iam_policy" "read_notification_queue_policy" {
 
 # Scraping lambda
 resource "aws_iam_role" "scraping_lambda_role" {
-  name = "iam_for_lambda"
+  name = "scraping_lambda_role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -98,7 +98,6 @@ resource "aws_iam_role" "scraping_lambda_role" {
     ]
   })
 }
-
 resource "aws_lambda_function" "scraping_lambda" {
   filename      = "../dist/scraping_lambda.zip"
   function_name = "scraping_lambda"
@@ -151,7 +150,6 @@ resource "aws_lambda_event_source_mapping" "scraping_lambda_event_source_mapping
 }
 
 # Notification lambda
-
 resource "aws_iam_role" "notification_lambda_role" {
   name = "notification_lambda_role"
 
@@ -168,7 +166,6 @@ resource "aws_iam_role" "notification_lambda_role" {
     ]
   })
 }
-
 resource "aws_lambda_function" "notification_lambda" {
   filename      = "../dist/notification_lambda.zip"
   function_name = "notification_lambda"
@@ -345,4 +342,42 @@ resource "aws_iam_policy" "write_checked_items_table_policy" {
       }
     ]
   })
+}
+
+
+# Create alert lambda
+resource "aws_iam_role" "create_alert_lambda_role" {
+  name = "create_alert_lambda_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+resource "aws_lambda_function" "create_alert_lambda" {
+  filename      = "../dist/create_alert_lambda.zip"
+  function_name = "create_alert_lambda"
+  role          = aws_iam_role.create_alert_lambda_role.arn
+
+  handler = "index.handler"
+  runtime = "nodejs18.x"
+  timeout = 30
+}
+
+resource "aws_iam_role_policy_attachment" "create_alert_lambda_basic_execution" {
+  role       = aws_iam_role.create_alert_lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy_attachment" "write_alerts_table_policy_attachment" {
+  role       = aws_iam_role.create_alert_lambda_role.name
+  policy_arn = aws_iam_policy.write_alerts_table_policy.arn
 }
